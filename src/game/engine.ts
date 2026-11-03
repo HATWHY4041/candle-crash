@@ -96,6 +96,7 @@ export class GameEngine {
   private virtualAim = { angle: 0, active: false, isFiring: false };
   private virtualFireHeld: boolean = false;
   private dashCooldown: number = 0;
+  private screenShakeMultiplier: number = 1.0;
 
   // Animated background market charts
   private chartCandles: { x: number; open: number; close: number; high: number; low: number; vol: number }[] = [];
@@ -300,6 +301,10 @@ export class GameEngine {
     this.emitBurst(this.player.x, this.player.y, 14, '#00FFA3', 190);
     audio.playLaser(true);
     return true;
+  }
+
+  public setScreenShakeMultiplier(val: number) {
+    this.screenShakeMultiplier = Math.max(0, Math.min(2, val));
   }
 
   private handleKeyUp = (e: KeyboardEvent) => {
@@ -1381,7 +1386,7 @@ export class GameEngine {
     const ctx = this.ctx;
 
     // Apply Camera Shake via Trauma
-    const shake = calculateTraumaShake(this.cameraTrauma, 16);
+    const shake = calculateTraumaShake(this.cameraTrauma, 16 * this.screenShakeMultiplier);
 
     ctx.save();
     ctx.translate(shake.offsetX, shake.offsetY);

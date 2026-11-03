@@ -127,3 +127,59 @@ export interface GameMetrics {
   autoFire: boolean;
   isMuted: boolean;
 }
+
+export interface SprintRecord {
+  id: string;
+  timestamp: number;
+  score: number;
+  timeSurvived: number;
+  enemiesKilled: number;
+  tokensCollected: number;
+  maxMultiplier: number;
+  sentimentReached: MarketSentiment;
+}
+
+export interface PlayerStats {
+  lifetimeScore: number;
+  highScore: number;
+  totalRuns: number;
+  longestSurvivalTime: number;
+  totalLiquidations: number;
+  totalTokensMined: number;
+  highestMultiplier: number;
+  bullRunsSurvived: number;
+  bearCrashesSurvived: number;
+}
+
+export interface PlayerSettings {
+  screenShakeIntensity: number; // 0 to 1
+  masterVolume: number; // 0 to 1
+  isMuted: boolean;
+  autoFireDefault: boolean;
+  showTouchControls: boolean;
+}
+
+export interface MilestoneIncentive {
+  id: string;
+  title: string;
+  description: string;
+  category: 'survival' | 'combat' | 'harvest' | 'prestige';
+  targetValue: number;
+  currentValue: number;
+  completed: boolean;
+  rewardName: string;
+  rewardType: 'badge' | 'skin' | 'boost' | 'perk';
+  rewardTeaser: string;
+}
+
+export interface PlayerProfile {
+  id: string;
+  callsign: string;
+  avatarIcon: string;
+  createdAt: number;
+  stats: PlayerStats;
+  settings: PlayerSettings;
+  history: SprintRecord[];
+  unlockedMilestones: string[];
+}
+

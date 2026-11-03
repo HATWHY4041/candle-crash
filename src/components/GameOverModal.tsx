@@ -5,12 +5,14 @@ interface GameOverModalProps {
   metrics: GameMetrics;
   onRetry: () => void;
   onTitle: () => void;
+  onOpenDashboard: () => void;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
   metrics,
   onRetry,
   onTitle,
+  onOpenDashboard,
 }) => {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -90,19 +92,28 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <button
+              data-start="true"
+              onClick={onRetry}
+              className="flex-1 py-3.5 bg-[#00FFA3] hover:bg-[#20fdb0] active:scale-95 text-[#0a0b10] font-cyber font-black tracking-widest text-base rounded-xs transition-all shadow-[0_0_20px_rgba(0,255,163,0.5)] cursor-pointer"
+            >
+              RETRY SPRINT (SPACE ↵)
+            </button>
+            <button
+              onClick={onTitle}
+              className="py-3.5 px-6 bg-[#1a1d28] hover:bg-[#222634] text-slate-300 hover:text-white font-mono font-bold text-xs tracking-wider border border-slate-700 rounded-xs transition-colors cursor-pointer"
+            >
+              TERMINAL MENU
+            </button>
+          </div>
+
           <button
-            data-start="true"
-            onClick={onRetry}
-            className="flex-1 py-3.5 bg-[#00FFA3] hover:bg-[#20fdb0] active:scale-95 text-[#0a0b10] font-cyber font-black tracking-widest text-base rounded-xs transition-all shadow-[0_0_20px_rgba(0,255,163,0.5)] cursor-pointer"
+            onClick={onOpenDashboard}
+            className="w-full py-2.5 bg-[#121520] hover:bg-[#1a1e2d] border border-slate-700 hover:border-[#00FFA3] text-[#00FFA3] font-mono font-bold text-xs tracking-wider rounded-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
-            RETRY SPRINT (SPACE ↵)
-          </button>
-          <button
-            onClick={onTitle}
-            className="py-3.5 px-6 bg-[#1a1d28] hover:bg-[#222634] text-slate-300 hover:text-white font-mono font-bold text-xs tracking-wider border border-slate-700 rounded-xs transition-colors cursor-pointer"
-          >
-            TERMINAL MENU
+            <span>📊</span> VIEW ACCOUNT DASHBOARD & INCENTIVES
           </button>
         </div>
       </div>

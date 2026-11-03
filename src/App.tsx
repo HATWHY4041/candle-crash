@@ -1,11 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { GameEngine } from './game/engine.ts';
-import { GameMetrics, GamePhase } from './game/types.ts';
+import { GameMetrics, GamePhase, PlayerProfile } from './game/types.ts';
 import { TitleScreen } from './components/TitleScreen.tsx';
 import { GameHUD } from './components/GameHUD.tsx';
 import { GameOverModal } from './components/GameOverModal.tsx';
 import { PauseModal } from './components/PauseModal.tsx';
 import { MobileControls } from './components/MobileControls.tsx';
+import { PlayerDashboard } from './components/PlayerDashboard.tsx';
+import {
+  loadProfiles,
+  saveProfiles,
+  recordRunToProfile,
+  createDefaultProfile,
+} from './game/account.ts';
+import { audio } from './game/audio.ts';
 
 const DEFAULT_METRICS: GameMetrics = {
   score: 0,
@@ -31,21 +39,66 @@ export default function App() {
   const [phase, setPhase] = useState<GamePhase>('title');
   const [metrics, setMetrics] = useState<GameMetrics>(DEFAULT_METRICS);
 
-  // Active by default for phone and touch readiness, with manual toggle persistence
-  const [showTouchControls, setShowTouchControls] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem('roguemarket_touch_controls');
-    if (stored !== null) return stored === 'true';
-    return true; // Always default to true so mobile users immediately see touch controls!
-  });
+  // Player Profiles & Account State
+  const [profilesData, setProfilesData] = useState<{ profiles: PlayerProfile[]; activeId: string }>(
+    () => loadProfiles()
+  );
+  const [showDashboard, setShowDashboard] = useState<boolean>(false);
+
+  const activeProfile =
+    profilesData.profiles.find((p) => p.id === profilesData.activeId) ||
+    profilesData.profiles[0] ||
+    createDefaultProfile();
+
+  // Touch controls state
+  const [showTouchControls, setShowTouchControls] = useState<boolean>(
+    () => activeProfile.settings.showTouchControls
+  );
+
+  // Apply profile settings into the game engine and audio
+  const applySettingsToEngine = (profile: PlayerProfile) => {
+    if (engineRef.current) {
+      engineRef.current.setScreenShakeMultiplier(profile.settings.screenShakeIntensity);
+    }
+    audio.setMasterVolume(profile.settings.masterVolume);
+    setShowTouchControls(profile.settings.showTouchControls);
+  };
+
+  const handleUpdateProfile = (updated: PlayerProfile) => {
+    const updatedProfiles = profilesData.profiles.map((p) =>
+      p.id === updated.id ? updated : p
+    );
+    setProfilesData((prev) => ({ ...prev, profiles: updatedProfiles }));
+    saveProfiles(updatedProfiles, profilesData.activeId);
+    applySettingsToEngine(updated);
+  };
+
+  const handleSwitchProfile = (profileId: string) => {
+    setProfilesData((prev) => ({ ...prev, activeId: profileId }));
+    saveProfiles(profilesData.profiles, profileId);
+    const target = profilesData.profiles.find((p) => p.id === profileId);
+    if (target) {
+      applySettingsToEngine(target);
+    }
+  };
+
+  const handleCreateProfile = (callsign: string, avatar: string) => {
+    const newProfile = createDefaultProfile(callsign, avatar);
+    const updatedProfiles = [...profilesData.profiles, newProfile];
+    setProfilesData({ profiles: updatedProfiles, activeId: newProfile.id });
+    saveProfiles(updatedProfiles, newProfile.id);
+    applySettingsToEngine(newProfile);
+  };
 
   const handleToggleTouchControls = () => {
-    setShowTouchControls((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('roguemarket_touch_controls', String(next));
-      } catch {}
-      return next;
+    const next = !showTouchControls;
+    setShowTouchControls(next);
+    handleUpdateProfile({
+      ...activeProfile,
+      settings: {
+        ...activeProfile.settings,
+        showTouchControls: next,
+      },
     });
   };
 
@@ -56,6 +109,10 @@ export default function App() {
     const engine = new GameEngine(canvasRef.current);
     engineRef.current = engine;
 
+    // Apply active profile settings
+    engine.setScreenShakeMultiplier(activeProfile.settings.screenShakeIntensity);
+    audio.setMasterVolume(activeProfile.settings.masterVolume);
+
     engine.setCallbacks(
       (newMetrics) => {
         setMetrics(newMetrics);
@@ -63,6 +120,23 @@ export default function App() {
       (finalMetrics) => {
         setPhase('gameover');
         setMetrics(finalMetrics);
+
+        // Record run to current player account!
+        setProfilesData((current) => {
+          const currentActive =
+            current.profiles.find((p) => p.id === current.activeId) || current.profiles[0];
+          if (!currentActive) return current;
+
+          const { profile: updatedProfile } = recordRunToProfile(currentActive, finalMetrics);
+          const updatedList = current.profiles.map((p) =>
+            p.id === updatedProfile.id ? updatedProfile : p
+          );
+          saveProfiles(updatedList, current.activeId);
+          return {
+            ...current,
+            profiles: updatedList,
+          };
+        });
       },
       (newPhase) => {
         setPhase(newPhase);
@@ -88,6 +162,9 @@ export default function App() {
 
   const handleStartSprint = () => {
     engineRef.current?.startSprint();
+    if (activeProfile.settings.autoFireDefault && engineRef.current) {
+      engineRef.current.toggleAutoFire();
+    }
   };
 
   const handlePause = () => {
@@ -110,6 +187,13 @@ export default function App() {
     if (engineRef.current) {
       const isMuted = engineRef.current.toggleMute();
       setMetrics((prev) => ({ ...prev, isMuted }));
+      handleUpdateProfile({
+        ...activeProfile,
+        settings: {
+          ...activeProfile.settings,
+          isMuted,
+        },
+      });
     }
   };
 
@@ -131,7 +215,12 @@ export default function App() {
 
       {/* Title Screen Overlay */}
       {phase === 'title' && (
-        <TitleScreen onStart={handleStartSprint} highScore={metrics.highScore} />
+        <TitleScreen
+          onStart={handleStartSprint}
+          highScore={Math.max(metrics.highScore, activeProfile.stats.highScore)}
+          profile={activeProfile}
+          onOpenDashboard={() => setShowDashboard(true)}
+        />
       )}
 
       {/* Playing HUD (Active during Playing and Paused) */}
@@ -168,6 +257,7 @@ export default function App() {
           onTitle={handleGoToTitle}
           onToggleMute={handleToggleMute}
           isMuted={metrics.isMuted}
+          onOpenDashboard={() => setShowDashboard(true)}
         />
       )}
 
@@ -177,6 +267,19 @@ export default function App() {
           metrics={metrics}
           onRetry={handleRetry}
           onTitle={handleGoToTitle}
+          onOpenDashboard={() => setShowDashboard(true)}
+        />
+      )}
+
+      {/* Player Account Dashboard Modal */}
+      {showDashboard && (
+        <PlayerDashboard
+          profile={activeProfile}
+          profiles={profilesData.profiles}
+          onUpdateProfile={handleUpdateProfile}
+          onSwitchProfile={handleSwitchProfile}
+          onCreateProfile={handleCreateProfile}
+          onClose={() => setShowDashboard(false)}
         />
       )}
     </div>

@@ -61,6 +61,15 @@ class SoundEngine {
     return this.muted;
   }
 
+  public setMasterVolume(val: number) {
+    const clamped = Math.max(0, Math.min(1, val));
+    this.initCtx();
+    if (this.masterGain && this.ctx && !this.muted) {
+      this.masterGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(clamped * 0.7, this.ctx.currentTime);
+    }
+  }
+
   /**
    * Snappy laser bark with slight pitch randomization.
    */

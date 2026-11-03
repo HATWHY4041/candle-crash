@@ -6,6 +6,7 @@ interface PauseModalProps {
   onTitle: () => void;
   onToggleMute: () => void;
   isMuted: boolean;
+  onOpenDashboard: () => void;
 }
 
 export const PauseModal: React.FC<PauseModalProps> = ({
@@ -14,6 +15,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({
   onTitle,
   onToggleMute,
   isMuted,
+  onOpenDashboard,
 }) => {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/70 select-none">
@@ -44,6 +46,13 @@ export const PauseModal: React.FC<PauseModalProps> = ({
             className="w-full py-2.5 bg-[#181b26] hover:bg-[#202433] text-slate-200 border border-slate-700 text-xs font-bold tracking-wider rounded-xs transition-colors cursor-pointer"
           >
             RESTART SPRINT
+          </button>
+
+          <button
+            onClick={onOpenDashboard}
+            className="w-full py-2.5 bg-[#181b26] hover:bg-[#202433] text-[#00FFA3] border border-slate-700 hover:border-[#00FFA3] text-xs font-bold tracking-wider rounded-xs transition-colors cursor-pointer"
+          >
+            📊 ACCOUNT DASHBOARD & SETTINGS
           </button>
 
           <button

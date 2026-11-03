@@ -1,11 +1,20 @@
 import React, { useEffect } from 'react';
+import { PlayerProfile } from '../game/types.ts';
+import { calculateTraderRank, AVATARS } from '../game/account.ts';
 
 interface TitleScreenProps {
   onStart: () => void;
   highScore: number;
+  profile: PlayerProfile;
+  onOpenDashboard: () => void;
 }
 
-export const TitleScreen: React.FC<TitleScreenProps> = ({ onStart, highScore }) => {
+export const TitleScreen: React.FC<TitleScreenProps> = ({
+  onStart,
+  highScore,
+  profile,
+  onOpenDashboard,
+}) => {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code === 'Enter' || e.code === 'Space') {
@@ -17,18 +26,40 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({ onStart, highScore }) 
     return () => window.removeEventListener('keydown', handleKey);
   }, [onStart]);
 
+  const rank = calculateTraderRank(profile.stats.lifetimeScore);
+  const avatar = AVATARS.find((a) => a.id === profile.avatarIcon) || AVATARS[0];
+
   return (
-    <div className="fixed inset-0 z-30 flex flex-col items-center justify-between p-6 sm:p-10 pointer-events-none select-none">
+    <div className="fixed inset-0 z-30 flex flex-col items-center justify-between p-4 sm:p-8 pointer-events-none select-none">
       {/* Top bar info */}
-      <div className="w-full max-w-5xl flex items-center justify-between text-xs sm:text-sm text-slate-400 font-mono tracking-wider">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#00FFA3] animate-pulse"></span>
-          <span>MARKET TICKER // SIM_RUNNING</span>
+      <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-slate-400 font-mono tracking-wider">
+        {/* Account Profile Badge button */}
+        <div className="pointer-events-auto">
+          <button
+            onClick={onOpenDashboard}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#12141c]/90 hover:bg-[#1a1d28] border border-slate-700 hover:border-[#00FFA3] rounded text-left transition-all cursor-pointer shadow-md group"
+          >
+            <span className="text-base group-hover:scale-110 transition-transform">
+              {avatar.icon}
+            </span>
+            <div className="flex flex-col">
+              <span className="text-white font-cyber font-bold text-xs leading-none">
+                {profile.callsign}
+              </span>
+              <span className="text-[9px] text-[#00FFA3] leading-none mt-0.5">
+                {rank.rank} · {rank.title}
+              </span>
+            </div>
+            <span className="ml-2 text-[10px] text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded group-hover:border-[#00FFA3] group-hover:text-[#00FFA3]">
+              DASHBOARD ⚙
+            </span>
+          </button>
         </div>
+
         <div className="text-right">
-          <span className="text-slate-500">ALL-TIME HIGH: </span>
-          <span className="text-[#00FFA3] font-bold tabular-nums font-cyber">
-            ${highScore.toLocaleString()}
+          <span className="text-slate-500 text-[11px] sm:text-xs">RECORD ATH: </span>
+          <span className="text-[#00FFA3] font-bold tabular-nums font-cyber text-sm sm:text-base">
+            ${Math.max(highScore, profile.stats.highScore).toLocaleString()}
           </span>
         </div>
       </div>
