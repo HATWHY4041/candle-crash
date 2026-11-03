@@ -144,3 +144,31 @@ export function calculateTraumaShake(
     offsetY: Math.sin(randomAngle) * maxOffset * intensity,
   };
 }
+
+/**
+ * Normalizes touch joystick offset within max radius with deadzone handling.
+ */
+export function calculateJoystickVector(
+  rawDx: number,
+  rawDy: number,
+  maxRadius: number = 50,
+  deadzone: number = 6
+): { x: number; y: number; active: boolean; angle: number; distance: number } {
+  const dist = Math.hypot(rawDx, rawDy);
+  if (dist < deadzone || maxRadius <= 0) {
+    return { x: 0, y: 0, active: false, angle: 0, distance: 0 };
+  }
+
+  const angle = Math.atan2(rawDy, rawDx);
+  const clampedDist = Math.min(dist, maxRadius);
+  const normalizedMagnitude = (clampedDist - deadzone) / (maxRadius - deadzone);
+
+  return {
+    x: Math.cos(angle) * normalizedMagnitude,
+    y: Math.sin(angle) * normalizedMagnitude,
+    active: true,
+    angle,
+    distance: clampedDist,
+  };
+}
+

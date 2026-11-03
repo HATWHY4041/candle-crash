@@ -5,6 +5,7 @@ import { TitleScreen } from './components/TitleScreen.tsx';
 import { GameHUD } from './components/GameHUD.tsx';
 import { GameOverModal } from './components/GameOverModal.tsx';
 import { PauseModal } from './components/PauseModal.tsx';
+import { MobileControls } from './components/MobileControls.tsx';
 
 const DEFAULT_METRICS: GameMetrics = {
   score: 0,
@@ -29,6 +30,24 @@ export default function App() {
 
   const [phase, setPhase] = useState<GamePhase>('title');
   const [metrics, setMetrics] = useState<GameMetrics>(DEFAULT_METRICS);
+
+  // Active by default for phone and touch readiness, with manual toggle persistence
+  const [showTouchControls, setShowTouchControls] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('roguemarket_touch_controls');
+    if (stored !== null) return stored === 'true';
+    return true; // Always default to true so mobile users immediately see touch controls!
+  });
+
+  const handleToggleTouchControls = () => {
+    setShowTouchControls((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('roguemarket_touch_controls', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Initialize Canvas & Engine once
   useEffect(() => {
@@ -122,6 +141,22 @@ export default function App() {
           onPause={handlePause}
           onToggleMute={handleToggleMute}
           onToggleAutoFire={handleToggleAutoFire}
+          showTouchControls={showTouchControls}
+          onToggleTouchControls={handleToggleTouchControls}
+        />
+      )}
+
+      {/* Mobile On-Screen Virtual Controls */}
+      {showTouchControls && (phase === 'playing' || phase === 'paused') && (
+        <MobileControls
+          onMove={(x, y) => engineRef.current?.setVirtualMove(x, y)}
+          onAim={(angle, active, isFiring) =>
+            engineRef.current?.setVirtualAim(angle, active, isFiring)
+          }
+          onFireHeld={(isFiring) => engineRef.current?.setVirtualFire(isFiring)}
+          onDash={() => engineRef.current?.triggerDash()}
+          onToggleAutoFire={handleToggleAutoFire}
+          autoFire={metrics.autoFire}
         />
       )}
 

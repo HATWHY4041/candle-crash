@@ -10,8 +10,29 @@ import {
   calculatePlayerSpeed,
   calculateSpawnParams,
   calculateTraumaShake,
+  calculateJoystickVector,
   CYCLE_DURATION,
 } from './rules.ts';
+
+test('calculateJoystickVector respects deadzone and maximum radius clamping', () => {
+  // Inside deadzone (< 6)
+  const dead = calculateJoystickVector(3, 4, 50, 6);
+  assert.equal(dead.active, false);
+  assert.equal(dead.x, 0);
+  assert.equal(dead.y, 0);
+
+  // At right edge (dx: 50, dy: 0)
+  const right = calculateJoystickVector(50, 0, 50, 6);
+  assert.equal(right.active, true);
+  assert.equal(Math.round(right.x), 1);
+  assert.equal(Math.round(right.y), 0);
+  assert.equal(right.distance, 50);
+
+  // Exceeding max radius (dx: 100, dy: 0 clamped to 50)
+  const over = calculateJoystickVector(100, 0, 50, 6);
+  assert.equal(over.distance, 50);
+  assert.equal(Math.round(over.x), 1);
+});
 
 test('clampDt restricts delta time to maximum budget', () => {
   assert.equal(clampDt(0.016), 0.016);

@@ -130,9 +130,11 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({ onStart, highScore }) 
         </div>
       </div>
 
-      {/* Flat control hint line */}
-      <div className="w-full text-center text-[11px] sm:text-xs text-slate-500 font-mono tracking-wider border-t border-slate-800/80 pt-3">
-        WASD / Arrow Keys Move · Mouse Aim & Left Click / Auto-Fire Shoot · Space / Enter Start · Esc / P Pause · M Mute
+      {/* Flat control hint line (Phone & PC) */}
+      <div className="w-full text-center text-[10px] sm:text-xs text-slate-400 font-mono tracking-wider border-t border-slate-800/80 pt-2.5 pb-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4">
+        <span><strong className="text-[#00FFA3]">PC:</strong> WASD Move · Mouse Aim & Click · Space Dash · Esc Pause</span>
+        <span className="hidden sm:inline text-slate-600">|</span>
+        <span><strong className="text-[#FF3B56]">PHONE:</strong> Left Thumb Move · Right Thumb Aim & Shoot · Quick Dash</span>
       </div>
     </div>
   );

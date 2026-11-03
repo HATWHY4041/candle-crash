@@ -91,6 +91,12 @@ export class GameEngine {
   private mousePos = { x: 400, y: 300 };
   private isMouseDown: boolean = false;
 
+  // Virtual / Mobile inputs
+  private virtualMove = { x: 0, y: 0 };
+  private virtualAim = { angle: 0, active: false, isFiring: false };
+  private virtualFireHeld: boolean = false;
+  private dashCooldown: number = 0;
+
   // Animated background market charts
   private chartCandles: { x: number; open: number; close: number; high: number; low: number; vol: number }[] = [];
   private chartOffset: number = 0;
@@ -240,6 +246,12 @@ export class GameEngine {
       return;
     }
 
+    if (this.phase === 'playing' && e.code === 'Space') {
+      e.preventDefault();
+      this.triggerDash();
+      return;
+    }
+
     if (e.code === 'KeyM') {
       this.toggleMute();
       return;
@@ -253,6 +265,42 @@ export class GameEngine {
 
     this.keysHeld.add(e.code);
   };
+
+  public setVirtualMove(x: number, y: number) {
+    this.virtualMove.x = Math.max(-1, Math.min(1, x));
+    this.virtualMove.y = Math.max(-1, Math.min(1, y));
+  }
+
+  public setVirtualAim(angle: number, active: boolean, isFiring: boolean = true) {
+    this.virtualAim.angle = angle;
+    this.virtualAim.active = active;
+    this.virtualAim.isFiring = isFiring;
+    if (active) {
+      this.player.angle = angle;
+    }
+  }
+
+  public setVirtualFire(isFiring: boolean) {
+    this.virtualFireHeld = isFiring;
+  }
+
+  public triggerDash(): boolean {
+    if (this.dashCooldown > 0 || this.phase !== 'playing') return false;
+    this.dashCooldown = 1.1;
+    const dashSpeed = 580;
+    let dashAngle = this.player.angle;
+    if (Math.hypot(this.player.vx, this.player.vy) > 20) {
+      dashAngle = Math.atan2(this.player.vy, this.player.vx);
+    }
+    this.player.vx = Math.cos(dashAngle) * dashSpeed;
+    this.player.vy = Math.sin(dashAngle) * dashSpeed;
+    this.player.invulnerableTimer = Math.max(this.player.invulnerableTimer, 0.28);
+    this.cameraTrauma = Math.max(this.cameraTrauma, 0.22);
+    this.addFloatingText(this.player.x, this.player.y - 30, 'DASH!', '#00FFA3', 1.0);
+    this.emitBurst(this.player.x, this.player.y, 14, '#00FFA3', 190);
+    audio.playLaser(true);
+    return true;
+  }
 
   private handleKeyUp = (e: KeyboardEvent) => {
     this.keysHeld.delete(e.code);
@@ -544,19 +592,19 @@ export class GameEngine {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Compute input direction
-    let moveX = 0;
-    let moveY = 0;
+    // Compute input direction (keyboard + mobile virtual joystick)
+    let moveX = this.virtualMove.x;
+    let moveY = this.virtualMove.y;
     if (this.keysHeld.has('KeyW') || this.keysHeld.has('ArrowUp')) moveY -= 1;
     if (this.keysHeld.has('KeyS') || this.keysHeld.has('ArrowDown')) moveY += 1;
     if (this.keysHeld.has('KeyA') || this.keysHeld.has('ArrowLeft')) moveX -= 1;
     if (this.keysHeld.has('KeyD') || this.keysHeld.has('ArrowRight')) moveX += 1;
 
-    // Normalize diagonal movement
-    if (moveX !== 0 && moveY !== 0) {
-      const invLen = 1 / Math.SQRT2;
-      moveX *= invLen;
-      moveY *= invLen;
+    // Clamp combined movement vector
+    const moveMag = Math.hypot(moveX, moveY);
+    if (moveMag > 1) {
+      moveX /= moveMag;
+      moveY /= moveMag;
     }
 
     // Speed calculation
@@ -577,10 +625,14 @@ export class GameEngine {
     this.player.x = Math.max(pad, Math.min(width - pad, this.player.x));
     this.player.y = Math.max(pad + 40, Math.min(height - pad - 30, this.player.y));
 
-    // Player aim angle toward mouse
-    const dx = this.mousePos.x - this.player.x;
-    const dy = this.mousePos.y - this.player.y;
-    this.player.angle = Math.atan2(dy, dx);
+    // Player aim angle
+    if (this.virtualAim.active) {
+      this.player.angle = this.virtualAim.angle;
+    } else {
+      const dx = this.mousePos.x - this.player.x;
+      const dy = this.mousePos.y - this.player.y;
+      this.player.angle = Math.atan2(dy, dx);
+    }
 
     // Invulnerability timer
     if (this.player.invulnerableTimer > 0) {
@@ -643,12 +695,17 @@ export class GameEngine {
       }
     }
 
-    // Weapon Firing
+    // Weapon Firing & Dash Cooldown
+    if (this.dashCooldown > 0) {
+      this.dashCooldown -= dt;
+    }
+
     if (this.player.fireCooldown > 0) {
       this.player.fireCooldown -= dt;
     }
 
-    const wantFire = this.isMouseDown || this.autoFire;
+    const wantFire =
+      this.isMouseDown || this.autoFire || this.virtualFireHeld || this.virtualAim.isFiring;
     if (wantFire && this.player.fireCooldown <= 0) {
       this.firePlayerWeapon();
     }
