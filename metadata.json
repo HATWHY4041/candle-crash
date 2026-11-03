@@ -1,0 +1,6 @@
+{
+  "name": "RogueMarket: Bull Run",
+  "description": "Cyberpunk 2D top-down arcade survival game navigating volatile Bull and Bear market cycles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-cyber: 'Orbitron', monospace, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-heading: 'Chakra Petch', sans-serif;
+    --color-neon-green: #00FFA3;
+    --color-liq-red: #FF3B56;
+    --color-deep-bg: #0a0b10;
+  }
+
+  body {
+    background-color: #0a0b10;
+    color: #e2e8f0;
+    font-family: var(--font-mono);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+}
+
+.font-cyber {
+  font-family: var(--font-cyber);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.glow-green {
+  text-shadow: 0 0 10px rgba(0, 255, 163, 0.7), 0 0 20px rgba(0, 255, 163, 0.4);
+}
+
+.glow-red {
+  text-shadow: 0 0 10px rgba(255, 59, 86, 0.7), 0 0 20px rgba(255, 59, 86, 0.4);
+}
+
+.box-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 163, 0.35), inset 0 0 15px rgba(0, 255, 163, 0.15);
+}
+
+.box-glow-red {
+  box-shadow: 0 0 15px rgba(255, 59, 86, 0.35), inset 0 0 15px rgba(255, 59, 86, 0.15);
+}
+
+/* Subtle CRT scanline overlay (pure CSS, pointer-events none) */
+.scanlines::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.4;
+}
